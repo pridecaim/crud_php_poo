@@ -2,46 +2,59 @@
 require_once('classes/Crud.php');
 require_once('conexao/conexao.php');
 
-$database=new Database();
-$db=$database->getConnection();
-$crud=new Crud($db);
+$database = new Database();
+$db = $database->getConnection();
+$crud = new Crud($db);
 
 if(isset($_GET['action'])){
     switch($_GET['action']){
         case 'create':
             $crud->create($_POST);
+            $rows = $crud->read();
+            break;
+        case 'read':
+            $rows = $crud->read();
+            break;
+        case 'update':
+            if(isset($_POST['id'])){
+                $crud->update($_POST);
+            }
             $rows=$crud->read();
             break;
-            case 'read':
-                $rows=$crud->read();
-                break;
-            //case update
-
-            //case delete
-
-            default:
-            $rows=$crud->read();
+            
+        case 'delete':
+            $crud->delete($_GET['id']);
+            $rows = $crud->read();
             break;
+
+        default:
+        $rows = $crud->read();
+        break;
+        
+
     }
 }else{
-    $rows=$crud->read();
+    $rows = $crud->read();
 }
+
+
 ?>
 
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Crud</title>
+
     <style>
-        form{
+       form{
             max-width:500px;
             margin: 0 auto;
         }
          label{
             display: flex;
-            margin-top:10px
+            margin-top:10px;
          }
          input[type=text]{
             width:100%;
@@ -99,21 +112,72 @@ if(isset($_GET['action'])){
             background-color:#c82333;
         }
     </style>
+
 </head>
 <body>
-    <form action="?action=create" method="POST">
+
+
+<?php  
+
+    if(isset($_GET['action']) && $_GET['action'] == 'update' && isset($_GET['id'])){
+        $id = $_GET['id'];
+        $result = $crud->readOne($id);
+
+        if(!$result){
+            echo "Registro não encontrado.";
+            exit();
+        }
+        $modelo = $result['modelo'];
+        $marca = $result['marca'];
+        $placa = $result['placa'];
+        $cor = $result['cor'];
+        $ano = $result['ano'];
+    
+?>
+    <form action="?action=update" method="POST">
+        <input type="hidden" name="id" value="<?php echo $id ?>">
         <label for="modelo">Modelo</label>
-        <input type="text" name="modelo">
+        <input type="text" name="modelo" value="<?php echo $modelo ?>">
+
         <label for="marca">Marca</label>
-        <input type="text" name="marca">
+        <input type="text" name="marca" value="<?php echo $marca ?>">
+
         <label for="placa">Placa</label>
-        <input type="text" name="placa">
+        <input type="text" name="placa" value="<?php echo $placa ?>">
+
         <label for="cor">Cor</label>
-        <input type="text" name="cor">
+        <input type="text" name="cor" value="<?php echo $cor ?>">
+
         <label for="ano">Ano</label>
+        <input type="text" name="ano" value="<?php echo $ano ?>">
+
+        <input type="submit" value="Atualizar" name="enviar" onclick="return confirm('Certeza que deseja atualizar?')">
+    </form>
+
+    <?php }else{?>
+
+
+    <form action="?action=create" method="POST">
+        <label for="">Modelo</label>
+        <input type="text" name="modelo">
+
+        <label for="">Marca</label>
+        <input type="text" name="marca">
+
+        <label for="">Placa</label>
+        <input type="text" name="placa">
+
+        <label for="">Cor</label>
+        <input type="text" name="cor">
+
+        <label for="">Ano</label>
         <input type="text" name="ano">
+
         <input type="submit" value="Cadastrar" name="enviar">
     </form>
+    <?php }?>
+
+
     <table>
         <tr>
             <td>Id</td>
@@ -122,7 +186,30 @@ if(isset($_GET['action'])){
             <td>Placa</td>
             <td>Cor</td>
             <td>Ano</td>
+            <td>Ações</td>
         </tr>
+        <?php
+  if($rows->rowCount() == 0){
+    echo "<tr>";
+    echo "<td colspan='7'>Nenhum dado encontrado</td>";
+    echo "</tr>";
+  } else {
+    while($row = $rows->fetch(PDO::FETCH_ASSOC)){
+      echo "<tr>";
+      echo "<td>" . $row['id'] . "</td>";
+      echo "<td>" . $row['modelo'] . "</td>";
+      echo "<td>" . $row['marca'] . "</td>";
+      echo "<td>" . $row['placa'] . "</td>";
+      echo "<td>" . $row['cor'] . "</td>";
+      echo "<td>" . $row['ano'] . "</td>";
+      echo "<td>";
+      echo "<a href='?action=update&id=" . $row['id'] . "'>Atualizar</a>";
+      echo "<a href='?action=delete&id=" . $row['id'] . "' onclick='return confirm(\"Tem certeza que quer apagar esse registro?\")' class='delete'>Deletar</a>";
+      echo "</td>";
+      echo "</tr>";
+    }
+  }
+?>
     </table>
 </body>
 </html>
